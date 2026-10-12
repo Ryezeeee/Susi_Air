@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: susi-air-pilot-api
+    runtime: node
+    rootDir: nest
+    plan: free
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: APP_TODAY
+        value: 2026-05-15
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: CORS_ORIGIN
+        value: "*"
