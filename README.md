@@ -8,8 +8,8 @@ A small slice of the Susi Air Pilot App: sign in, a home screen with duty-limit 
 | [`/nuxt`](./nuxt) | Nuxt 3 · `<script setup>` · Pinia · SCSS · TypeScript | Vercel / Netlify |
 
 **Live URLs**
-- Frontend: `<add after deploying>`
-- API: `<add after deploying>`
+- Frontend: https://susi-air-kthx.vercel.app
+- API: https://susi-air-five.vercel.app
 
 Demo account: `johndoe` / `susiairtest`
 
