@@ -1,25 +1,27 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { DocumentsFile, FlightHoursFile, SchedulesFile } from './data.types';
+// Imported (not read with fs) so the JSON is bundled with the code. This keeps the
+// app working on serverless hosts such as Vercel, where only bundled files exist.
+import documentsJson from './mock/mock-documents.json';
+import flightHoursJson from './mock/mock-flight-hours.json';
+import schedulesJson from './mock/mock-schedules.json';
 
 /**
- * Loads the three provided JSON files once, when the service boots,
- * and keeps them in memory. No database is needed for this test.
+ * Holds the three provided JSON files in memory. No database is needed for this test.
  */
 @Injectable()
 export class DataService implements OnModuleInit {
   private readonly logger = new Logger(DataService.name);
-  private readonly dataDir = process.env.DATA_DIR ?? join(process.cwd(), 'data');
 
   flightHours!: FlightHoursFile;
   documents!: DocumentsFile;
   schedules!: SchedulesFile;
 
   onModuleInit(): void {
-    this.flightHours = this.load<FlightHoursFile>('mock-flight-hours.json');
-    this.documents = this.load<DocumentsFile>('mock-documents.json');
-    this.schedules = this.load<SchedulesFile>('mock-schedules.json');
+    // structuredClone so sorting below never mutates the imported module objects.
+    this.flightHours = structuredClone(flightHoursJson) as FlightHoursFile;
+    this.documents = structuredClone(documentsJson) as DocumentsFile;
+    this.schedules = structuredClone(schedulesJson) as SchedulesFile;
 
     // Sort once so lookups and prefix sums can rely on date order.
     this.flightHours.flightHours.sort((a, b) => a.date.localeCompare(b.date));
@@ -29,9 +31,5 @@ export class DataService implements OnModuleInit {
       `Seeded ${this.flightHours.flightHours.length} flight-hour days, ` +
         `${this.documents.documents.length} documents, ${this.schedules.schedules.length} schedule entries`,
     );
-  }
-
-  private load<T>(file: string): T {
-    return JSON.parse(readFileSync(join(this.dataDir, file), 'utf-8')) as T;
   }
 }

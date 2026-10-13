@@ -4,7 +4,7 @@ A small slice of the Susi Air Pilot App: sign in, a home screen with duty-limit 
 
 | Folder | Stack | Deploy target |
 |---|---|---|
-| [`/nest`](./nest) | NestJS 10 · TypeScript · class-validator · JWT | Render / Railway |
+| [`/nest`](./nest) | NestJS 10 · TypeScript · class-validator · JWT | Vercel (or Render / Railway) |
 | [`/nuxt`](./nuxt) | Nuxt 3 · `<script setup>` · Pinia · SCSS · TypeScript | Vercel / Netlify |
 
 **Live URLs**
@@ -48,13 +48,12 @@ Production: `npm run build` then `node .output/server/index.mjs`, or `npm run ge
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `PORT` | `3001` | HTTP port (Render/Railway set this themselves) |
+| `PORT` | `3001` | HTTP port (hosting platforms set this themselves) |
 | `JWT_SECRET` | dev-only value | Secret used to sign login tokens. **Set this in production.** |
 | `JWT_EXPIRES_IN` | `12h` | Token lifetime |
 | `APP_TODAY` | `2026-05-15` | The app's "today". Every date calculation uses this, never `new Date()` |
 | `CORS_ORIGIN` | `*` | Comma-separated allowed origins, e.g. your Vercel URL |
 | `PILOT_USERNAME` / `PILOT_PASSWORD` | `johndoe` / `susiairtest` | The hardcoded pilot account |
-| `DATA_DIR` | `./data` | Folder holding the three mock JSON files |
 
 **`/nuxt`**
 
@@ -99,7 +98,7 @@ All endpoints except `POST /auth/login` (and `GET /health`, for the host's liven
 
 ### Backend
 
-- **Module per feature**, each with its own controller, service and DTOs (`auth`, `pilot`, `flight-hours`, `documents`, `schedules`). A global `DataModule` loads the three JSON files once at boot (`OnModuleInit`) and keeps them in memory; no database, as the brief allows.
+- **Module per feature**, each with its own controller, service and DTOs (`auth`, `pilot`, `flight-hours`, `documents`, `schedules`). A global `DataModule` holds the three JSON files in memory (loaded once in `OnModuleInit`); no database, as the brief allows. The files live in `src/data/mock/` and are `import`ed rather than read with `fs`, so they are bundled with the code and work on serverless hosts.
 - **Auth guard registered globally** (`APP_GUARD`) so every route is protected by default and `/auth/login` opts out with `@Public()`. Forgetting the decorator fails closed, not open. Tokens are signed JWTs, so the guard checks exactly what `/auth/login` issued. Credentials are compared in constant time.
 - **Validation** via a global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`, `stopAtFirstError`). Query params are typed DTOs (`year`/`month` become numbers; dates must be real `YYYY-MM-DD` dates, so `2026-02-30` is rejected). Cross-field rules (`from <= to`, max span) live in the service.
 - **One clock.** `ClockService` reads `APP_TODAY` (default 15 May 2026). Every service asks it for "today", so the reviewer sees the same numbers whenever they look.
@@ -145,13 +144,13 @@ Status follows the rule in `mock-documents.json` (≤ 0 days expired, ≤ 30 day
 
 ## Deploying
 
-**API on Render:** "New → Blueprint" with this repo (uses [`render.yaml`](./render.yaml)), or a Web Service with root `nest`, build `npm install && npm run build`, start `npm start`. Set `JWT_SECRET` and `CORS_ORIGIN=<your Vercel URL>`. Railway works the same with root directory `nest`.
+Both apps deploy to **Vercel** from the same repo as two projects, with no credit card needed on the Hobby plan.
 
-**Frontend on Vercel:** import the repo, set Root Directory to `nuxt` (Nuxt is auto-detected), and add `NUXT_PUBLIC_API_BASE=<your API URL>`. Netlify: base directory `nuxt`, build `npm run generate`, publish `nuxt/.output/public`.
+**API:** New Project → import the repo → Root Directory `nest`. Vercel detects NestJS from `src/main.ts` and runs it as a function. Add env vars `JWT_SECRET` (long random string), `APP_TODAY=2026-05-15`, and `CORS_ORIGIN=<frontend URL>`.
 
-Free Render instances sleep when idle; the first request after a pause can take ~30 s.
+**Frontend:** New Project → same repo → Root Directory `nuxt` (Nuxt is auto-detected). Add `NUXT_PUBLIC_API_BASE=<API URL>`, no trailing slash.
 
----
+**Alternatives:** [`render.yaml`](./render.yaml) deploys the API on Render (Blueprint, or a Web Service with root `nest`, build `npm install --include=dev && npm run build`, start `npm start`). Netlify works for the frontend via `nuxt/netlify.toml`.
 
 ## With more time
 
